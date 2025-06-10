@@ -209,7 +209,7 @@ class HL2000Lamp:
     
     def disconnect(self) -> str:
         """Close the serial connection to the lamp,
-        disable lamp if enabled."""
+        disable lamp light if enabled."""
         self.set_enable(False)
         self.set_drive(False)
         self.pyvisa_serial.close()
