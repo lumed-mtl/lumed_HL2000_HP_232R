@@ -470,7 +470,7 @@
            </widget>
           </item>
           <item>
-           <widget class="QPlainTextEdit" name="texteditCurrent">
+           <widget class="QPlainTextEdit" name="texteditShutterPosition">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
               <horstretch>0</horstretch>
