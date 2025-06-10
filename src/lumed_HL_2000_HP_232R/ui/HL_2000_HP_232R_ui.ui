@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>ipsWidget</class>
- <widget class="QWidget" name="ipsWidget">
+ <class>HL2000Widget</class>
+ <widget class="QWidget" name="HL2000Widget">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -48,7 +48,7 @@
         <enum>QLayout::SetMinimumSize</enum>
        </property>
        <item>
-        <widget class="QComboBox" name="comboboxAvailableLaser">
+        <widget class="QComboBox" name="comboboxAvailableLamp">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
            <horstretch>0</horstretch>
@@ -65,7 +65,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QPushButton" name="pushbtnFindLaser">
+        <widget class="QPushButton" name="pushbtnFindLamp">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
            <horstretch>0</horstretch>
@@ -155,7 +155,7 @@
           <item>
            <layout class="QHBoxLayout" name="horizontalLayout_3">
             <item>
-             <widget class="QLabel" name="labelCurrent">
+             <widget class="QLabel" name="labelShutterPosition">
               <property name="sizePolicy">
                <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
                 <horstretch>0</horstretch>
@@ -175,7 +175,7 @@
              </widget>
             </item>
             <item>
-             <widget class="QSpinBox" name="spinboxLaserCurrent">
+             <widget class="QSpinBox" name="spinboxShutterPosition">
               <property name="font">
                <font>
                 <pointsize>10</pointsize>
@@ -255,7 +255,7 @@
              <number>0</number>
             </property>
             <item>
-             <widget class="QPushButton" name="pushbtnLaserEnable">
+             <widget class="QPushButton" name="pushbtnLampEnable">
               <property name="font">
                <font>
                 <pointsize>10</pointsize>
@@ -269,7 +269,7 @@
              </widget>
             </item>
             <item>
-             <widget class="QPushButton" name="pushbtnLaserDisable">
+             <widget class="QPushButton" name="pushbtnLampDisable">
               <property name="font">
                <font>
                 <pointsize>10</pointsize>
@@ -310,14 +310,14 @@
        </property>
        <layout class="QVBoxLayout" name="verticalLayout_4">
         <item>
-         <widget class="QLabel" name="labelLaserConnected">
+         <widget class="QLabel" name="labelLampConnected">
           <property name="text">
            <string/>
           </property>
          </widget>
         </item>
         <item>
-         <widget class="QLabel" name="labelLaserEnabled">
+         <widget class="QLabel" name="labelLampEnabled">
           <property name="text">
            <string/>
           </property>
@@ -402,7 +402,7 @@
         <item>
          <layout class="QHBoxLayout" name="horizontalLayout_7">
           <item>
-           <widget class="QLabel" name="label_serialno">
+           <widget class="QLabel" name="label_FirmwareVersion">
             <property name="font">
              <font>
               <pointsize>10</pointsize>
@@ -412,12 +412,12 @@
              </font>
             </property>
             <property name="text">
-             <string>SerialNo: </string>
+             <string>Firmware version:</string>
             </property>
            </widget>
           </item>
           <item>
-           <widget class="QPlainTextEdit" name="texteditSN">
+           <widget class="QPlainTextEdit" name="texteditFV">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
               <horstretch>0</horstretch>
@@ -455,7 +455,7 @@
         <item>
          <layout class="QHBoxLayout" name="horizontalLayout_6">
           <item>
-           <widget class="QLabel" name="label_current_status">
+           <widget class="QLabel" name="label_shutter_position">
             <property name="font">
              <font>
               <pointsize>10</pointsize>
@@ -465,7 +465,7 @@
              </font>
             </property>
             <property name="text">
-             <string>Current [mA]: </string>
+             <string>Shutter position: </string>
             </property>
            </widget>
           </item>
