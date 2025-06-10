@@ -150,18 +150,20 @@ class HL2000Lamp:
         firmware_version [str]: The firmware version
         """
         self.scpi_query("VER")
+
     #Setters
+
     def set_enable(self, enable) -> None:
         """Controls whether the laser is enabled or disabled.
 
         Parameter : <enable> (int) : 1/ON = Enables the Lamp, 0/OFF = Disables the lamp
         """
-        if enable == True: 
+        if enable: 
             #Lamp light will be enabled
             self.scpi_write("SO")
             self.enabled = True
             return
-        elif enable == False: 
+        elif not enable: 
             #Lamp light will be disabled
             self.scpi_write("CO")
             self.enabled = False
@@ -183,11 +185,11 @@ class HL2000Lamp:
 
         Parameter: <enable> (int) : 1/ON = Enables the drive electronics, 0/OFF = Disables Enables the drive electronics
         """
-        if enable == True:
+        if enable:
             self.scpi_write("EN")
             self.drive = True
 
-        elif enable == False: 
+        elif not enable: 
             self.scpi_write("DI")
             self.drive = False
 
