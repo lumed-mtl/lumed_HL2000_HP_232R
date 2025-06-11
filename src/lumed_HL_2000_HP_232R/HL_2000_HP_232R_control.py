@@ -1,5 +1,17 @@
-import pyvisa
+import importlib.metadata
+import logging
+import math
+import re
 from dataclasses import dataclass
+from threading import Lock
+
+import pyvisa
+
+logger = logging.getLogger()
+
+ERROR_CODES = {
+    0: "NO_ERROR",  # Hardware error
+}
 
 @dataclass
 class LampInfo:
@@ -9,22 +21,23 @@ class LampInfo:
     coil_temperature: float = float("nan")
     shutter_position: float = float("nan")
 
-
 class HL2000Lamp:
     """Control Ocean Optics' halogen lamp HL-2000-HP-232R."""
     def __init__(self) -> None:
-        self.idn: str | None = None
+        self.firmware_version: str | None = None
         self.comport: str | None = None #communication port on which the lamp is connected via usb
         self.pyvisa_serial: pyvisa.resources.serial.SerialInstrument | None = None
-
+        
+        self._mutex: Lock = Lock()
         self.isconnected: bool = False
+        self.isenabled: bool = False
+        self.shutter_position: float = float("nan")
         self.resource_manage = pyvisa.ResourceManager("@py")
+        self.info = LampInfo()
 
     def find_lamp_device(self) -> dict[str, pyvisa.highlevel.ResourceInfo]:
         """
         find_lamp_device finds and returns which resources detected by pyvisa's resource manage is associated with HL2000 lamp
-
-        IPS lasers appear as `ASRL/dev/ttyACMX::INSTR`
 
         Returns
         -------
@@ -47,7 +60,7 @@ class HL2000Lamp:
         return connected_lamps
     
     ## Basic methods
-    def scpi_write(self, message: str) -> (int):
+    def _safe_scpi_write(self, message: str) -> (int):
         """Sends a serial message to the lamp and verifies if any communication error occured.
 
         Parameter : <message> (string) : Message send to the lamp by serial.
@@ -57,14 +70,20 @@ class HL2000Lamp:
         <err_code> : communication error code
         <err_message> : communication error message
         """
-        self.pyvisa_serial.write(message)
+        if not self.isconnected:
+            return 0, ERROR_CODES[0]
+        with self._mutex:
+            try:
+                self.pyvisa_serial.write(message)
+            except Exception as e:
+                logger.error(e)
         # err_msg = self.pyvisa_serial.query("Error?").strip()
         # err_code = err_msg.split(",")[0]
         # err_msg = err_msg.split(",")[-1].strip().strip('"')
 
         return None #err_code, err_msg
 
-    def scpi_query(self, message: str) -> (str):
+    def _safe_scpi_query(self, message: str) -> (str):
         """Sends a serial message to the lamp
 
         Parameter : <message> (string) : Message send to the lamp by serial.
@@ -72,7 +91,11 @@ class HL2000Lamp:
         Returns:
         <value> (string) : Answer provided by the lamp to the serial COM.
         """
-        answer = self.pyvisa_serial.query(message).strip()
+        with self._mutex:
+            try:
+                answer = self.pyvisa_serial.query(message).strip()
+            except Exception as e:
+                logger.error(e)
         #err_msg = self.pyvisa_serial.query("Error?").strip()
         #err_code = int(err_msg.split(",")[0])
         #err_msg = err_msg.split(",")[-1].strip().strip('"')
@@ -81,13 +104,12 @@ class HL2000Lamp:
 
     def __repr__(self) -> str:
         reprstr = (
-            f"IPSLaser(idn = '{self.idn}', "
+            f"HL2000Lamp(Firmware version = '{self.firmware_version}', "
             f"comport = '{self.comport}', "
             f"connected = {self.isconnected}, "
-            f"enabled = {self.laser_enabled}, "
-            f"laser current = {self.laser_current} mA, "
-            f" laser temperature = {self.laser_temp}C, "
-            f"laser power = {self.laser_power} mW)"
+            f"enabled = {self.isenabled}, "
+            f"shutter position = {self.info.shutter_position} mA, "
+            f" coil temperature = {self.info.coil_temperature}C, "
         )
         return reprstr
     
@@ -103,7 +125,7 @@ class HL2000Lamp:
         Returns
         fault_status_dict [dict]: Dictionnary with the state of every fault status
         """
-        fault_status = self.scpi_query("GFS")
+        fault_status = self._safe_scpi_query("GFS")
         fault_status_dict = {"Over-temperature":False, "Over-current":False, "Under-voltage":False, "Over-voltage":False}
         if fault_status[0] == "1":
             fault_status_dict["Over-temperature"] = True
@@ -129,7 +151,7 @@ class HL2000Lamp:
 
         Returns
         coil_temp [float]: module case temperature in °C"""
-        coil_temp = self.scpi_query("TEM")
+        coil_temp = self._safe_scpi_query("TEM")
         coil_temp = float(coil_temp)
         return coil_temp
     
@@ -139,7 +161,7 @@ class HL2000Lamp:
         Returns 
         shutter_pos [int]: The shutter position
         """
-        shutter_pos = self.scpi_query('POS')
+        shutter_pos = self._safe_scpi_query('POS')
         #shutter_pos = float(shutter_pos)
         return shutter_pos
     def get_firmware_version(self) -> str:
@@ -149,7 +171,7 @@ class HL2000Lamp:
         Returns 
         firmware_version [str]: The firmware version
         """
-        self.scpi_query("VER")
+        return self._safe_scpi_query("VER")
 
     #Setters
 
@@ -160,25 +182,24 @@ class HL2000Lamp:
         """
         if enable: 
             #Lamp light will be enabled
-            self.scpi_write("SO")
-            self.enabled = True
-            return
+            self._safe_scpi_write("SO")
+            self.isenabled = True
         elif not enable: 
             #Lamp light will be disabled
-            self.scpi_write("CO")
-            self.enabled = False
+            self._safe_scpi_write("CO")
+            self.isenabled = False
 
     def set_home_position(self) -> None:
         """Sets the shutter's home position
         """
-        self.scpi_write("HO")
+        self._safe_scpi_write("HO")
 
 
     def set_shutter_position(self, shutter_position) -> None:
         """Sets the shutter's position relative to the home position (home position = 0)
         """
-        self.scpi_write(f'LA{shutter_position}') # Load absolute position (which is relative to home position)
-        self.scpi_write('M') #Initiate shutter movement
+        self._safe_scpi_write(f'LA{int(shutter_position)}') # Load absolute position (which is relative to home position)
+        self._safe_scpi_write('M') #Initiate shutter movement
 
     def set_drive(self, enable) -> None:
         """Controls wether the shutter motor's drive electronics are enabled or disabled.
@@ -186,11 +207,11 @@ class HL2000Lamp:
         Parameter: <enable> (int) : 1/ON = Enables the drive electronics, 0/OFF = Disables Enables the drive electronics
         """
         if enable:
-            self.scpi_write("EN")
+            self._safe_scpi_write("EN")
             self.drive = True
 
         elif not enable: 
-            self.scpi_write("DI")
+            self._safe_scpi_write("DI")
             self.drive = False
 
     ## Compound methods
@@ -214,7 +235,7 @@ class HL2000Lamp:
         self.set_drive(False)
         self.pyvisa_serial.close()
         self.isconnected = False
-        self.idn = None
+        self.firmware_version = None
         return not self.isconnected
     
     def get_info(self) -> LampInfo:
@@ -223,7 +244,7 @@ class HL2000Lamp:
 
         try:
             version = self.get_firmware_version()
-            is_enabled = self.enabled
+            is_enabled = self.isenabled
             coil_temperature = self.get_coil_temperature()
             shutter_position = self.get_shutter_position()
             return LampInfo(
@@ -236,11 +257,6 @@ class HL2000Lamp:
         except Exception as _:
             return LampInfo()
         
-    firmware_version: str = ""
-    is_connected: bool = False
-    is_enabled: bool = False
-    temperature: float = float("nan")
-    shutter_position: float = float("nan")
 
 
 if __name__ == "__main__":
