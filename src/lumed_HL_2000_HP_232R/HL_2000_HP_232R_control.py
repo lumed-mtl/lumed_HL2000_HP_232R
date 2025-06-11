@@ -48,9 +48,9 @@ class HL2000Lamp:
     
     ## Basic methods
     def scpi_write(self, message: str) -> (int):
-        """Sends a serial message to the laser and verifies if any communication error occured.
+        """Sends a serial message to the lamp and verifies if any communication error occured.
 
-        Parameter : <message> (string) : Message send to the laser by serial.
+        Parameter : <message> (string) : Message send to the lamp by serial.
         The command syntax for those messages is explained in the documentation provided by IPS.  %
 
         Returns:
@@ -67,7 +67,7 @@ class HL2000Lamp:
     def scpi_query(self, message: str) -> (str):
         """Sends a serial message to the lamp
 
-        Parameter : <message> (string) : Message send to the laser by serial.
+        Parameter : <message> (string) : Message send to the lamp by serial.
 
         Returns:
         <value> (string) : Answer provided by the lamp to the serial COM.
@@ -154,7 +154,7 @@ class HL2000Lamp:
     #Setters
 
     def set_enable(self, enable) -> None:
-        """Controls whether the laser is enabled or disabled.
+        """Controls whether the lamp is enabled or disabled.
 
         Parameter : <enable> (int) : 1/ON = Enables the Lamp, 0/OFF = Disables the lamp
         """
