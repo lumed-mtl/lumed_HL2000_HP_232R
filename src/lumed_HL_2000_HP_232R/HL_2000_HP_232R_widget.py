@@ -1,5 +1,5 @@
-"""User Interface (UI) for the control of IPS lasers with the IPSLaser() class 
-imported from the laser_control module"""
+"""User Interface (UI) for the control of ocean optics HL_2000_HP_232R halogen lamp with the HL2000() class 
+imported from the HL_2000_HP_232R_control module"""
 
 import logging
 import sys
@@ -78,7 +78,7 @@ class HL2000Widget(QWidget, Ui_HL2000Widget):
 
     def setup_default_ui(self):
         self.pushbtnFindLamp.setIcon(fugue.icon("magnifier-left"))
-        self.spinboxShutterPosition.setMaximum(400)  # max current of IPS lasers
+        self.spinboxShutterPosition.setMaximum(400)  # max position of lamp shutter
 
         self.spinboxPulseDuration.setEnabled(False)
         self.pushbtnPulse.setEnabled(False)
@@ -162,7 +162,7 @@ class HL2000Widget(QWidget, Ui_HL2000Widget):
 
     def setup_update_timer(self):
         """Creates the PyQt Timer and connects it to the function that updates
-        the UI and gets the laser infos."""
+        the UI and gets the lamp infos."""
         self.update_timer = QTimer()
         self.update_timer.setInterval(100)
         self.update_timer.timeout.connect(self.update_ui)
@@ -186,7 +186,7 @@ class HL2000Widget(QWidget, Ui_HL2000Widget):
     def update_ui(self):
         self.updateLampInfo()
 
-        # Enable/disable controls if laser is connected or not
+        # Enable/disable controls if lamp is connected or not
         is_connected = self.lamp_info.is_connected
         self.pushbtnConnect.setEnabled(not is_connected)
         self.comboboxAvailableLamp.setEnabled(not is_connected)
@@ -212,7 +212,7 @@ class HL2000Widget(QWidget, Ui_HL2000Widget):
         self.lamp_info = self.lamp.get_info()
         self.lamp_safety_check()
 
-        # update UI based on laserinfo
+        # update UI based on LampInfo
         self.setLabelEnabled(self.lamp_info.is_enabled)
         self.texteditFV.setPlainText(self.lamp_info.firmware_version)
         self.texteditShutterPosition.setPlainText(str(self.lamp_info.shutter_position))
