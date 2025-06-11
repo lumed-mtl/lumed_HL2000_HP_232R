@@ -4,7 +4,7 @@ import sys
 import qtmodern.styles
 from PyQt5.QtWidgets import QApplication, QMainWindow
 
-from lumed_ips.ips_widget import IpsLaserWidget
+from lumed_HL_2000_HP_232R.HL_2000_HP_232R_widget import HL2000Widget
 
 if __name__ == "__main__":
     # Set up logging
@@ -22,6 +22,6 @@ if __name__ == "__main__":
     window = QMainWindow()
     window.show()
 
-    window.setCentralWidget(IpsLaserWidget())
+    window.setCentralWidget(HL2000Widget())
 
     app.exec_()
