@@ -66,7 +66,7 @@ class HL2000Widget(QWidget, Ui_HL2000Widget):
         logger.info("Widget intialization")
 
         self.lamp: HL2000Lamp = HL2000Lamp()
-        self.lamp_info: LampInfo = self.lamp.get_info()
+        self.lamp_info: LampInfo = self.lamp.info
         self.last_enabled_state: bool = False
 
         # ui parameters
@@ -194,7 +194,6 @@ class HL2000Widget(QWidget, Ui_HL2000Widget):
         self.pushbtnDisconnect.setEnabled(is_connected)
         self.groupboxControl.setEnabled(is_connected)
         self.setLabelConnected(is_connected)
-
         self.pushbtnLampEnable.setEnabled(not self.lamp_info.is_enabled)
 
     def lamp_safety_check(self):
