@@ -4,9 +4,9 @@ import math
 import re
 from dataclasses import dataclass
 from threading import Lock
-
-import pyvisa
-
+import pyvisa #https://pyvisa.readthedocs.io/en/latest/api/resources.html#api-resources
+import time as tt
+import serial.tools.list_ports
 logger = logging.getLogger()
 
 ERROR_CODES = {
@@ -15,7 +15,7 @@ ERROR_CODES = {
 
 @dataclass
 class LampInfo:
-    firmware_version: str = ""
+    firmware_version: str = "N/A"
     is_connected: bool = False
     is_enabled: bool = False
     coil_temperature: float = float("nan")
@@ -31,10 +31,11 @@ class HL2000Lamp:
         self._mutex: Lock = Lock()
         self.isconnected: bool = False
         self.isenabled: bool = False
+        self.drive: bool = False
         self.shutter_position: float = float("nan")
         self.resource_manage = pyvisa.ResourceManager("@py")
         self.info = LampInfo()
-
+        
     def find_lamp_device(self) -> dict[str, pyvisa.highlevel.ResourceInfo]:
         """
         find_lamp_device finds and returns which resources detected by pyvisa's resource manage is associated with HL2000 lamp
@@ -44,11 +45,17 @@ class HL2000Lamp:
         dict
             Mapping of resource name to ResourceInfo from pyvisa.
         """
-        resources = self.resource_manage.list_resources_info()#query="?*ACM?*"
+        
+        resources = self.resource_manage.list_resources_info()
+        ports = serial.tools.list_ports.comports()
         connected_lamps = {}
-
+        counter = -1
         for k, v in resources.items():
-            # ser = serial.Serial(port = COM_port, baudrate = 9600, bytesize = 8, parity='N', stopbits=1, timeout=1)
+            counter+=1
+            if "Bluetooth" in ports[counter].description:
+                #exclude blutooth COM ports
+                continue
+            time0 = tt.time()
             try:
                 device = self.resource_manage.open_resource(k)
                 device.timeout = 50
@@ -92,15 +99,20 @@ class HL2000Lamp:
         <value> (string) : Answer provided by the lamp to the serial COM.
         """
         with self._mutex:
+            time0 = tt.time()
             try:
-                answer = self.pyvisa_serial.query(message).strip()
+                readings = []
+                self.pyvisa_serial.write(message)
+                reading = 'OK\r\n'
+                while reading == 'OK\r\n':
+                    reading = self.pyvisa_serial.read_raw().decode()
+                return reading  
             except Exception as e:
                 logger.error(e)
         #err_msg = self.pyvisa_serial.query("Error?").strip()
         #err_code = int(err_msg.split(",")[0])
         #err_msg = err_msg.split(",")[-1].strip().strip('"')
 
-        return answer#, err_code, err_msg
 
     def __repr__(self) -> str:
         reprstr = (
@@ -164,8 +176,74 @@ class HL2000Lamp:
         shutter_pos = self._safe_scpi_query('POS')
         #shutter_pos = float(shutter_pos)
         return shutter_pos
-    def get_firmware_version(self) -> str:
+    
+    def get_motion_control_status(self) -> str:
+        """Requests the motion controller status by looking at the 7-bits returned by the lamp
 
+        Bit 0: 1... Position mode\n
+               0... Velocity mode\n
+        Bit 1: 1... Speed command is analog input\n
+               0... Speed command comes via RS232\n
+        Bit 2: 1... Speed command is PWM\n
+               0... Speed command is analog voltage\n
+        Bit 3: 1... Amplifier Enabled\n
+               0... Amplifier Disabled\n       
+        Bit 4: 1... In Position
+               0... Not in Position
+        Bit 5: 1... Rising edge on external switch is valid
+               0... Falling edge on external switch is valid
+        Bit 6: 1... External switch now high level
+               0... External switch now low level
+        
+        Returns
+        motion_control_status_dict [dict]: Dictionnary with the state of every motion control parameter
+        """
+        motion_control_status = str(self._safe_scpi_query("GST"))
+        motion_control_status_dict = {"Motion mode":None, 
+                             "Speed command input":None, 
+                             "Speed command power":None, 
+                             "Amplifier":None, 
+                             "Position state":None, 
+                             "external switch edge state":None, 
+                             "external switch level state":None}
+        if motion_control_status[0] == "0":
+            motion_control_status_dict["Motion mode"] = "velocity"
+        elif motion_control_status[0] == "1":
+            motion_control_status_dict["Motion mode"] = "position"
+
+        if motion_control_status[1] == "0":
+            motion_control_status_dict["Speed command input"] = "rs232"
+        elif motion_control_status[1] == "1":
+            motion_control_status_dict["Speed command input"] = "analog"
+
+        if motion_control_status[2] == "0":
+            motion_control_status_dict["Speed command power"] = "analog voltage"
+        elif motion_control_status[2] == "1":
+            motion_control_status_dict["Speed command power"] = "PWM"
+        
+        if motion_control_status[3] == "0":
+            motion_control_status_dict["Amplifier"] = "disabled"
+        elif motion_control_status[3] == "1":
+            motion_control_status_dict["Amplifier"] = "enabled"
+        
+        if motion_control_status[4] == "0":
+            motion_control_status_dict["Position state"] = "not in position"
+        elif motion_control_status[4] == "1":
+            motion_control_status_dict["Position state"] = "in position"
+
+        if motion_control_status[5] == "0":
+            motion_control_status_dict["external switch edge state"] = "Falling edge is valid"
+        elif motion_control_status[5] == "1":
+            motion_control_status_dict["external switch edge state"] = "Rising edge is valid"
+
+        if motion_control_status[6] == "0":
+            motion_control_status_dict["external switch level state"] = "high"
+        elif motion_control_status[6] == "1":
+            motion_control_status_dict["external switch level state"] = "low"
+        
+        return motion_control_status, motion_control_status_dict
+
+    def get_firmware_version(self) -> str:
         """Reports the device's firmware version
 
         Returns 
@@ -194,12 +272,14 @@ class HL2000Lamp:
         """
         self._safe_scpi_write("HO")
 
-
-    def set_shutter_position(self, shutter_position) -> None:
+    def set_shutter_position(self, shutter_position, delay = 0.1) -> None:
         """Sets the shutter's position relative to the home position (home position = 0)
         """
+        self.set_drive(True)
         self._safe_scpi_write(f'LA{int(shutter_position)}') # Load absolute position (which is relative to home position)
+        tt.sleep(delay)
         self._safe_scpi_write('M') #Initiate shutter movement
+        tt.sleep(delay)
 
     def set_drive(self, enable) -> None:
         """Controls wether the shutter motor's drive electronics are enabled or disabled.
@@ -220,7 +300,8 @@ class HL2000Lamp:
         """Connects the lamp"""
         try:
             self.pyvisa_serial = self.resource_manage.open_resource(self.comport)
-            self.pyvisa_serial.write_termination = '\r'
+            self.pyvisa_serial.write_termination = '\r\n'
+            self.pyvisa_serial.read_termination = '\r\n'
             self.set_drive(True)
             self.isconnected = True
         except Exception as _:
@@ -262,14 +343,115 @@ class HL2000Lamp:
 if __name__ == "__main__":
     print("START")
     lamp = HL2000Lamp()
+    time0 = tt.time()
     connected_lamps = lamp.find_lamp_device()
+    print("find lamp time", time0-tt.time())
     print("Connected lamps:")
-    print(connected_lamps)
+    print(list(connected_lamps))
     lamp.comport = list(connected_lamps)[0]
     print("comport:", lamp.comport)
-    print("Connecting lamp")
+    print("Connecting lamp...")
+    print("lamp drive state before connection:", lamp.drive)
     lamp.connect()
-    #lamp.set_home_position()
-    #lamp.set_shutter_position(100)
-    print(lamp.get_shutter_position()) #the returned position is a string 'OK' for an unknown reason
-    print("DONE")
+    print("lamp drive state after connection:", lamp.drive)
+    lamp.set_shutter_position(-400) 
+    lamp.set_home_position() #Setting home posiiton (0) as position with shutter completely closed
+    lamp.set_enable(True)
+    input()
+    print("Illumination open")
+    tt.sleep(1)
+    print("Start loop")
+    for shutter_position in range(0,200,50):
+        tt.sleep(1)
+        print("Expected position:", shutter_position)
+        # motion_status, motion_status_dict = lamp.get_motion_control_status()
+        # print(motion_status)
+        # print("Posiiton state before:", motion_status_dict["Position state"])
+        lamp.set_shutter_position(shutter_position)
+        lamp_info = lamp.get_info()
+        print("lamp_info:", lamp_info.shutter_position)
+        print("Current position:", lamp.get_shutter_position())
+        
+        
+
+    tt.sleep(0.1)
+    lamp.set_enable(False)
+    print("LAMP OFF")
+    lamp.disconnect()
+    print("Disconnected lamp")
+
+    #lamp.comport = 'ASRL6::INSTR'
+    # device = lamp.resource_manage.open_resource(lamp.comport)
+    # device.timeout = 500
+    # device.query_delay = 0.2
+    # device.write_termination = '\r\n'
+    # device.read_termination = '\r\n'
+
+    # device.baud_rate = 9600
+    # device.data_bits = 8
+    # device.parity = pyvisa.constants.Parity.none
+    # device.stop_bits = pyvisa.constants.StopBits.one
+    # device.flow_control = pyvisa.constants.ControlFlow.none
+
+    #device.write("CO")
+    # print("LAMP OFF")
+    # device.write('DI')
+    
+    # tt.sleep(0.5)
+    # version = device.query('VER').strip('Version')
+    # print("version:",  version)
+    # fault_status = device.query('GFS').strip()
+    # print("fault status:", fault_status)
+
+    # device.write('EN') #Enable drive elecronics
+    # device.write(f'LA{-200}') #load absolute position to attain
+    
+    # device.write('M') #start motion with the set posiiton
+    # tt.sleep(0.1)
+    # device.write('GST')
+    # while True:
+    #     try:
+    #         print('motor status', device.read_raw())
+    #     except Exception as _:
+    #         break
+    
+    # print('INITIAL POSITION')
+    # device.write('POS')
+    # while True:
+    #     try:
+    #         print(device.read_raw())
+    #     except Exception as _:
+    #         break
+    # device.write('HO') #Set present position as home position
+    # print("LAMP ON")
+    # device.write("SO") #Enable light
+    
+    # i = 0
+    # for shutter_position in range(30,100,20):
+    #     print('MOVE TO', shutter_position)
+    #     device.write('EN') #Enable drive elecronics
+    #     tt.sleep(0.1)
+    #     device.write(f'LA{shutter_position}') #load absolute position to attain
+    #     tt.sleep(0.1)
+    #     device.write('M') #start motion with the set posiiton
+    #     tt.sleep(0.1)
+
+    #     device.write('POS')
+    #     device.read_raw()
+    #     device.write('POS')
+    #     readings = []
+    #     while True:
+    #         try:
+    #             readings.append(device.read_raw())
+    #         except Exception as _:
+    #             break
+    #     print(readings)
+    
+    # tt.sleep(0.01)
+
+    # print("LAMP OFF")
+    # device.write('DI')
+    # device.write('CO')
+    #device.close()
+
+   
