@@ -150,6 +150,7 @@ class HL2000Widget(QWidget, Ui_HL2000Widget):
         shutter_position = self.spinboxShutterPosition.value()
         logger.info("Setting lamp shutter position : %s", shutter_position)
         self.lamp.set_shutter_position(shutter_position)
+        self.update_ui()
 
     def set_initial_configurations(self):
         logger.info("Setting initial lamp configurations")
@@ -185,7 +186,6 @@ class HL2000Widget(QWidget, Ui_HL2000Widget):
     
     def update_ui(self):
         self.updateLampInfo()
-
         # Enable/disable controls if lamp is connected or not
         is_connected = self.lamp_info.is_connected
         self.pushbtnConnect.setEnabled(not is_connected)
@@ -195,6 +195,8 @@ class HL2000Widget(QWidget, Ui_HL2000Widget):
         self.groupboxControl.setEnabled(is_connected)
         self.setLabelConnected(is_connected)
         self.pushbtnLampEnable.setEnabled(not self.lamp_info.is_enabled)
+        self.pushbtnLampDisable.setEnabled(self.lamp_info.is_enabled)
+        
 
     def lamp_safety_check(self):
         is_enabled = self.lamp_info.is_enabled
@@ -207,13 +209,12 @@ class HL2000Widget(QWidget, Ui_HL2000Widget):
             self.last_enabled_state = is_enabled
 
     def updateLampInfo(self):
-
         self.lamp_info = self.lamp.get_info()
         self.lamp_safety_check()
 
         # update UI based on LampInfo
         self.setLabelEnabled(self.lamp_info.is_enabled)
-        self.texteditFV.setPlainText(self.lamp_info.firmware_version)
+        self.texteditFV.setPlainText(self.lamp_info.firmware_version.strip("Version "))
         self.texteditShutterPosition.setPlainText(str(self.lamp_info.shutter_position))
         self.texteditTemperature.setPlainText(str(self.lamp_info.coil_temperature))
 
