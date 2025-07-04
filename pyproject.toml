@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
+
+
+[project]
+name = "lumed_HL_2000_HP_232R"
+version = "1.0"
+authors = [
+    { name = "Guillaume Sheehy", email = "guillaume.sheehy@polymtl.ca" },
+    { name = "Najib Nassiri", email = "najib.nassiri@polymtl.ca" },
+]
+dependencies = [
+    "PyVISA-py",
+    "PyQt5",
+    "zeroconf",
+    "psutil",
+    "pyserial",
+    "qtmodern",
+    "pyqt5-fugueicons",
+]
+description = "A module to control Ocean Optics lumed_HL_2000_HP_232R halogen lamp."
+readme = "README.md"
+requires-python = ">=3.8"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+
+[tool.setuptools.dynamic]
+version = { attr = "iadpython.__version__" }
