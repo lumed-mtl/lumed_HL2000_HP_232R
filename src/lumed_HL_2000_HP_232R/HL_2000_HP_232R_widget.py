@@ -113,10 +113,10 @@ class HL2000Widget(QWidget, Ui_HL2000Widget):
         logger.info("Connecting lamp")
         self.pushbtnConnect.setEnabled(False)
         try:
-            lamp_comport = self.comboboxAvailableLamp.currentText()
-            self.lamp.comport = lamp_comport
+            self.lamp.comport = self.comboboxAvailableLamp.currentText()
+            
             self.lamp.connect()
-            logger.info("Connected lamp : %s", lamp_comport)
+            logger.info("Connected lamp : %s", self.lamp.comport)
             self.set_initial_configurations()
         except Exception as e:
             logger.error(e, exc_info=True)
