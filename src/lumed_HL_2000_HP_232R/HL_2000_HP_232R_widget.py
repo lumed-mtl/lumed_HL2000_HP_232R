@@ -129,6 +129,7 @@ class HL2000Widget(QWidget, Ui_HL2000Widget):
         try:
             self.set_initial_configurations()
             self.lamp.disconnect()
+            logger.info("Disconnected lamp")
         except Exception as e:
             logger.error(e, exc_info=True)
         self.update_ui()
@@ -197,7 +198,6 @@ class HL2000Widget(QWidget, Ui_HL2000Widget):
         self.pushbtnLampEnable.setEnabled(not self.lamp_info.is_enabled)
         self.pushbtnLampDisable.setEnabled(self.lamp_info.is_enabled)
         
-
     def lamp_safety_check(self):
         is_enabled = self.lamp_info.is_enabled
         if is_enabled != self.last_enabled_state:
