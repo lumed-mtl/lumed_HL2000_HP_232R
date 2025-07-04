@@ -217,6 +217,7 @@ class HL2000Widget(QWidget, Ui_HL2000Widget):
         self.texteditFV.setPlainText(self.lamp_info.firmware_version.strip("Version "))
         self.texteditShutterPosition.setPlainText(str(self.lamp_info.shutter_position))
         self.texteditTemperature.setPlainText(str(self.lamp_info.coil_temperature))
+        self.texteditDrivercurrent.setPlainText(str(self.lamp_info.driver_current))
 
 if __name__ == "__main__":
 

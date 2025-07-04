@@ -20,6 +20,7 @@ class LampInfo:
     is_enabled: bool = False
     coil_temperature: float = float("nan")
     shutter_position: float = float("nan")
+    driver_current: float = float("nan")
 
 class HL2000Lamp:
     """Control Ocean Optics' halogen lamp HL-2000-HP-232R."""
@@ -250,7 +251,13 @@ class HL2000Lamp:
         firmware_version [str]: The firmware version
         """
         return self._safe_scpi_query("VER")
+    def get_driver_current(self):
+        """Reports the motion control driver's current in mA
 
+        Returns 
+        current [str]: The driver current in mA
+        """
+        return float(self._safe_scpi_query("GRC").strip("\r\n"))
     #Setters
 
     def set_enable(self, enable) -> None:
@@ -302,7 +309,6 @@ class HL2000Lamp:
             self.pyvisa_serial = self.resource_manage.open_resource(self.comport)
             self.pyvisa_serial.write_termination = '\r\n'
             self.pyvisa_serial.read_termination = '\r\n'
-            self.set_drive(True)
             self.isconnected = True
         except Exception as _:
             self.isconnected = False
@@ -328,12 +334,14 @@ class HL2000Lamp:
             is_enabled = self.isenabled
             coil_temperature = self.get_coil_temperature()
             shutter_position = self.get_shutter_position()
+            driver_current = self.get_driver_current()
             return LampInfo(
                 firmware_version=version,
                 is_connected=True,
                 is_enabled=is_enabled,
                 coil_temperature=coil_temperature,
-                shutter_position = shutter_position
+                shutter_position = shutter_position,
+                driver_current = driver_current
             )
         except Exception as _:
             return LampInfo()
@@ -351,25 +359,31 @@ if __name__ == "__main__":
     lamp.comport = list(connected_lamps)[0]
     print("comport:", lamp.comport)
     print("Connecting lamp...")
-    print("lamp drive state before connection:", lamp.drive)
     lamp.connect()
-    print("lamp drive state after connection:", lamp.drive)
     lamp.set_shutter_position(-400) 
     lamp.set_home_position() #Setting home posiiton (0) as position with shutter completely closed
+    print("real current after moving shutter to home position", lamp._safe_scpi_query('GRC').strip("\r\n"), "mA")
     lamp.set_enable(True)
-    input()
+    print("real current after enabling light", lamp._safe_scpi_query('GRC').strip("\r\n"), "mA")
     print("Illumination open")
     tt.sleep(1)
+    lamp._safe_scpi_write('SP1000')
+    print("Maximum velocity:", lamp._safe_scpi_query('GSP').strip("\r\n"))
     print("Start loop")
-    for shutter_position in range(0,200,50):
+    
+    for shutter_position in range(0,500,400):
         tt.sleep(1)
         print("Expected position:", shutter_position)
         # motion_status, motion_status_dict = lamp.get_motion_control_status()
         # print(motion_status)
         # print("Posiiton state before:", motion_status_dict["Position state"])
         lamp.set_shutter_position(shutter_position)
+        print("velocity sent", lamp._safe_scpi_query('GV').strip("\r\n"))
+        print("real current after moving shutter", lamp._safe_scpi_query('GRC').strip("\r\n"), "mA")
+        
+
         lamp_info = lamp.get_info()
-        print("lamp_info:", lamp_info.shutter_position)
+        print("lamp_info position:", lamp_info.shutter_position)
         print("Current position:", lamp.get_shutter_position())
         
         
