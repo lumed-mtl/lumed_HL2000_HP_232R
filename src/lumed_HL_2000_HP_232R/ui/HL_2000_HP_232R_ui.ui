@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>517</width>
+    <width>553</width>
     <height>410</height>
    </rect>
   </property>
@@ -353,22 +353,28 @@
         <item>
          <layout class="QHBoxLayout" name="horizontalLayout_5">
           <item>
-           <widget class="QLabel" name="label_model">
+           <widget class="QLabel" name="label_Drivercurrent">
             <property name="font">
              <font>
-              <pointsize>10</pointsize>
+              <family>MS Shell Dlg 2</family>
+              <pointsize>9</pointsize>
               <weight>50</weight>
+              <italic>false</italic>
               <bold>false</bold>
               <kerning>false</kerning>
              </font>
             </property>
+            <property name="styleSheet">
+             <string notr="true">font: 9pt &quot;MS Shell Dlg 2&quot;;
+</string>
+            </property>
             <property name="text">
-             <string>Model: </string>
+             <string>Driver current (mA):</string>
             </property>
            </widget>
           </item>
           <item>
-           <widget class="QPlainTextEdit" name="texteditModel">
+           <widget class="QPlainTextEdit" name="texteditDrivercurrent">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
               <horstretch>0</horstretch>
