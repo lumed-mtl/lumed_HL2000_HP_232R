@@ -74,15 +74,13 @@ class HL2000Widget(QWidget, Ui_HL2000Widget):
         self.setup_default_ui()
         self.connect_ui_signals()
         self.setup_update_timer()
+        self.setup_pulse_timer()
         self.update_ui()
         logger.info("Widget initialization complete")
 
     def setup_default_ui(self):
         self.pushbtnFindLamp.setIcon(fugue.icon("magnifier-left"))
         self.spinboxShutterPosition.setMaximum(400)  # max position of lamp shutter
-
-        self.spinboxPulseDuration.setEnabled(False)
-        self.pushbtnPulse.setEnabled(False)
     
     def connect_ui_signals(self):
         self.pushbtnFindLamp.clicked.connect(self.find_lamp)
@@ -147,13 +145,14 @@ class HL2000Widget(QWidget, Ui_HL2000Widget):
         logger.info("Disabling lamp")
         self.lamp.set_enable(False)
         self.last_enabled_state = False
+        self.pulse_timer.stop() #If a pulse is running and disable button is pressed, the pulse will be stopped
         self.update_ui()
 
     def set_timed_pulse(self):
         """A timed pulse controlled by the user"""
         pulse_time = self.spinboxPulseDuration.value() #in milliseconds
         self.enable_lamp()
-        QTimer.singleShot(pulse_time, self.disable_lamp) #wait the pulse time and then disable lamp       
+        self.pulse_timer.start(pulse_time) #wait the pulse time and then disable lamp     
 
     def set_shutter_position(self):
         shutter_position = self.spinboxShutterPosition.value()
@@ -162,13 +161,14 @@ class HL2000Widget(QWidget, Ui_HL2000Widget):
         self.update_ui()
 
     def set_initial_configurations(self):
-        logger.info("Setting initial lamp configurations")
-        logger.info("Setting lamp to disable")
-        self.lamp.set_enable(False)
-        logger.info("Setting lamp shutter position to a closed position")
-        self.lamp.set_shutter_position(-400)
-        logger.info("Setting lamp shutter closed position as home position")
-        self.lamp.set_home_position()
+        if self.lamp_info.is_connected:
+            logger.info("Setting initial lamp configurations")
+            logger.info("Setting lamp to disable")
+            self.lamp.set_enable(False)
+            logger.info("Setting lamp shutter position to a closed position")
+            self.lamp.set_shutter_position(-400)
+            logger.info("Setting lamp shutter closed position as home position")
+            self.lamp.set_home_position()
 
     def setup_update_timer(self):
         """Creates the PyQt Timer and connects it to the function that updates
@@ -177,7 +177,10 @@ class HL2000Widget(QWidget, Ui_HL2000Widget):
         self.update_timer.setInterval(100)
         self.update_timer.timeout.connect(self.update_ui)
     
-    
+    def setup_pulse_timer(self):
+        self.pulse_timer = QTimer()
+        self.pulse_timer.timeout.connect(self.disable_lamp)
+        self.pulse_timer.setSingleShot(True)
 
     def setLabelConnected(self, isconnected: bool) -> None:
         if isconnected:
@@ -206,6 +209,7 @@ class HL2000Widget(QWidget, Ui_HL2000Widget):
         self.groupboxControl.setEnabled(is_connected)
         self.setLabelConnected(is_connected)
         self.pushbtnLampEnable.setEnabled(not self.lamp_info.is_enabled)
+        self.pushbtnPulse.setEnabled(not self.lamp_info.is_enabled)
         self.pushbtnLampDisable.setEnabled(self.lamp_info.is_enabled)
         
     def lamp_safety_check(self):
