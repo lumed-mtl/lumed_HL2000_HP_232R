@@ -272,8 +272,8 @@ class HL2000Lamp:
         elif not enable: 
             #Lamp light will be disabled
             self._safe_scpi_write("CO")
-            self.isenabled = False
-
+            self.isenabled = False      
+    
     def set_home_position(self) -> None:
         """Sets the shutter's home position
         """

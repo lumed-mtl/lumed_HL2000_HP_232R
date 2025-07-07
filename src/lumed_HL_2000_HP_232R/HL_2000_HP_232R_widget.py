@@ -6,6 +6,7 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 from time import strftime
+import time as tt
 
 import pyqt5_fugueicons as fugue
 from PyQt5.QtCore import QTimer, pyqtSignal, pyqtSlot
@@ -89,6 +90,7 @@ class HL2000Widget(QWidget, Ui_HL2000Widget):
         self.pushbtnDisconnect.clicked.connect(self.disconnect_lamp)
         self.pushbtnLampEnable.clicked.connect(self.enable_lamp)
         self.pushbtnLampDisable.clicked.connect(self.disable_lamp)
+        self.pushbtnPulse.clicked.connect(self.set_timed_pulse)
         self.spinboxShutterPosition.valueChanged.connect(self.set_shutter_position)
 
     def find_lamp(self):
@@ -147,6 +149,12 @@ class HL2000Widget(QWidget, Ui_HL2000Widget):
         self.last_enabled_state = False
         self.update_ui()
 
+    def set_timed_pulse(self):
+        """A timed pulse controlled by the user"""
+        pulse_time = self.spinboxPulseDuration.value() #in milliseconds
+        self.enable_lamp()
+        QTimer.singleShot(pulse_time, self.disable_lamp) #wait the pulse time and then disable lamp       
+
     def set_shutter_position(self):
         shutter_position = self.spinboxShutterPosition.value()
         logger.info("Setting lamp shutter position : %s", shutter_position)
@@ -168,6 +176,8 @@ class HL2000Widget(QWidget, Ui_HL2000Widget):
         self.update_timer = QTimer()
         self.update_timer.setInterval(100)
         self.update_timer.timeout.connect(self.update_ui)
+    
+    
 
     def setLabelConnected(self, isconnected: bool) -> None:
         if isconnected:
