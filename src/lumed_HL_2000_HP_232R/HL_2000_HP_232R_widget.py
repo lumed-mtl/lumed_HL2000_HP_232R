@@ -6,7 +6,6 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 from time import strftime
-import time as tt
 
 import pyqt5_fugueicons as fugue
 from PyQt5.QtCore import QTimer, pyqtSignal, pyqtSlot

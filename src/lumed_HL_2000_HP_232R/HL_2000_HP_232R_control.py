@@ -1,7 +1,5 @@
 import importlib.metadata
 import logging
-import math
-import re
 from dataclasses import dataclass
 from threading import Lock
 import pyvisa #https://pyvisa.readthedocs.io/en/latest/api/resources.html#api-resources

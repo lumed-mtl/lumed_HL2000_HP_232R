@@ -18,8 +18,9 @@ dependencies = [
     "pyserial",
     "qtmodern",
     "pyqt5-fugueicons",
+    "serial"
 ]
-description = "A module to control Ocean Optics lumed_HL_2000_HP_232R halogen lamp."
+description = "A module to control Ocean Optics HL-2000-HP-232R halogen lamp."
 readme = "README.md"
 requires-python = ">=3.8"
 
