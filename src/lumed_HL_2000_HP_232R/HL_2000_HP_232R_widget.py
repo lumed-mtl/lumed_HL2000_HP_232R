@@ -182,7 +182,7 @@ class HL2000Widget(QWidget, Ui_HL2000Widget):
         self.pulse_timer.timeout.connect(self.disable_lamp)
         self.pulse_timer.setSingleShot(True)
 
-    def setLabelConnected(self, isconnected: bool) -> None:
+    def set_label_connected(self, isconnected: bool) -> None:
         if isconnected:
             self.labelLampConnected.setText("Connected")
             self.labelLampConnected.setStyleSheet("color:green")
@@ -190,7 +190,7 @@ class HL2000Widget(QWidget, Ui_HL2000Widget):
             self.labelLampConnected.setText("Not Connected")
             self.labelLampConnected.setStyleSheet("color:red")
 
-    def setLabelEnabled(self, isenabled: bool) -> None:
+    def set_label_enabled(self, isenabled: bool) -> None:
         if isenabled:
             self.labelLampEnabled.setText("ENABLED")
             self.labelLampEnabled.setStyleSheet("color:red")
@@ -199,7 +199,7 @@ class HL2000Widget(QWidget, Ui_HL2000Widget):
             self.labelLampEnabled.setStyleSheet("color:green")
     
     def update_ui(self):
-        self.updateLampInfo()
+        self.update_lamp_info()
         # Enable/disable controls if lamp is connected or not
         is_connected = self.lamp_info.is_connected
         self.pushbtnConnect.setEnabled(not is_connected)
@@ -207,7 +207,7 @@ class HL2000Widget(QWidget, Ui_HL2000Widget):
         self.pushbtnFindLamp.setEnabled(not is_connected)
         self.pushbtnDisconnect.setEnabled(is_connected)
         self.groupboxControl.setEnabled(is_connected)
-        self.setLabelConnected(is_connected)
+        self.set_label_connected(is_connected)
         self.pushbtnLampEnable.setEnabled(not self.lamp_info.is_enabled)
         self.pushbtnPulse.setEnabled(not self.lamp_info.is_enabled)
         self.pushbtnLampDisable.setEnabled(self.lamp_info.is_enabled)
@@ -222,12 +222,12 @@ class HL2000Widget(QWidget, Ui_HL2000Widget):
             self.lamp.set_enable(is_enabled)
             self.last_enabled_state = is_enabled
 
-    def updateLampInfo(self):
+    def update_lamp_info(self):
         self.lamp_info = self.lamp.get_info()
         self.lamp_safety_check()
 
         # update UI based on LampInfo
-        self.setLabelEnabled(self.lamp_info.is_enabled)
+        self.set_label_enabled(self.lamp_info.is_enabled)
         self.texteditFV.setPlainText(self.lamp_info.firmware_version.strip("Version "))
         self.texteditShutterPosition.setPlainText(str(self.lamp_info.shutter_position))
         self.texteditTemperature.setPlainText(str(self.lamp_info.coil_temperature))
